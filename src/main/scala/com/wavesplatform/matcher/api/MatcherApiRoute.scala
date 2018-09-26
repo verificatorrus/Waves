@@ -4,7 +4,7 @@ import java.util.concurrent.Executors
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.{StatusCode, StatusCodes}
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -35,7 +35,7 @@ import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 @Path("/matcher")
 @Api(value = "/matcher/")
@@ -56,9 +56,12 @@ case class MatcherApiRoute(wallet: Wallet,
   import MatcherApiRoute._
   import PathMatchers._
 
-  private val timer       = Kamon.timer("matcher.api-requests")
-  private val placeTimer  = timer.refine("action" -> "place")
-  private val cancelTimer = timer.refine("action" -> "cancel")
+  private val timer                       = Kamon.timer("matcher.api-requests")
+  private val placeTimer                  = timer.refine("action" -> "place")
+  private val cancelTimer                 = timer.refine("action" -> "cancel")
+  private val orderBookTimer              = timer.refine("action" -> "order-book")
+  private val ordersByAddressTimer        = timer.refine("action" -> "orders-by-address")
+  private val ordersByAddressAndPairTimer = timer.refine("action" -> "orders-by-address-and-pair")
 
   override lazy val route: Route =
     pathPrefix("matcher") {
@@ -80,6 +83,18 @@ case class MatcherApiRoute(wallet: Wallet,
           )
       case Left(e) => complete(StatusCodes.NotFound -> Json.obj("message" -> e))
     }
+
+  private def withSignature(pk: PublicKeyAccount, timestamp: String, signature: String): Directive1[PublicKeyAccount] = {
+    (for {
+      signatureBytes <- Base58.decode(signature).toEither.left.map(_ => "Invalid base58 string")
+      ts             <- Try(timestamp.toLong).toEither.left.map(_ => "Invalid timestamp")
+      _              <- Either.cond(math.abs(ts - NTP.correctedTime()).millis < matcherSettings.maxTimestampDiff, (), "Incorrect timestamp")
+      _              <- Either.cond(crypto.verify(signatureBytes, pk.publicKey ++ Longs.toByteArray(ts), pk.publicKey), (), "Invalid signature")
+    } yield pk) match {
+      case Right(_)    => provide(pk)
+      case Left(error) => complete(StatusCodes.BadRequest -> Json.obj("message" -> error))
+    }
+  }
 
   @Path("/")
   @ApiOperation(value = "Matcher Public Key", notes = "Get matcher public key", httpMethod = "GET")
@@ -113,7 +128,7 @@ case class MatcherApiRoute(wallet: Wallet,
   def getOrderBook: Route = (path("orderbook" / AssetPairPM) & get) { p =>
     parameters('depth.as[Int].?) { depth =>
       withAssetPair(p, redirectToInverse = true) { pair =>
-        complete(orderBookSnapshot.get(pair, depth))
+        complete(orderBookTimer.measure[HttpResponse](orderBookSnapshot.get(pair, depth)))
       }
     }
   }
@@ -262,17 +277,15 @@ case class MatcherApiRoute(wallet: Wallet,
                            paramType = "header")
     ))
   def getAssetPairAndPublicKeyOrderHistory: Route = (path("orderbook" / AssetPairPM / "publicKey" / PublicKeyPM) & get) { (p, publicKey) =>
-    (headerValueByName("Timestamp") & headerValueByName("Signature")) { (ts, sig) =>
-      checkGetSignature(publicKey, ts, sig) match {
-        case Success(address) =>
-          withAssetPair(p, redirectToInverse = true, s"/publicKey/$publicKey") { pair =>
-            complete(StatusCodes.OK -> DBUtils.ordersByAddressAndPair(db, address, pair, matcherSettings.maxOrdersPerRequest).map {
-              case (order, orderInfo) =>
-                orderJson(order, orderInfo)
-            })
-          }
-        case Failure(ex) =>
-          complete(StatusCodes.BadRequest -> Json.obj("message" -> ex.getMessage))
+    withAssetPair(p, redirectToInverse = true, s"/publicKey/$publicKey") { pair =>
+      (headerValueByName("Timestamp") & headerValueByName("Signature")) { (ts, sig) =>
+        withSignature(publicKey, ts, sig) { _ =>
+          complete(StatusCodes.OK -> ordersByAddressAndPairTimer.measure {
+            DBUtils
+              .ordersByAddressAndPair(db, publicKey, pair, matcherSettings.maxOrdersPerRequest)
+              .map { case (order, orderInfo) => orderJson(order, orderInfo) }
+          })
+        }
       }
     }
   }
@@ -300,28 +313,15 @@ case class MatcherApiRoute(wallet: Wallet,
   def getPublicKeyOrderHistory: Route = (path("orderbook" / PublicKeyPM) & get) { publicKey =>
     parameters('activeOnly.as[Boolean].?) { activeOnly =>
       (headerValueByName("Timestamp") & headerValueByName("Signature")) { (ts, sig) =>
-        checkGetSignature(publicKey, ts, sig) match {
-          case Success(_) =>
-            complete(
-              StatusCodes.OK -> DBUtils
-                .ordersByAddress(db, publicKey, activeOnly.getOrElse(false), matcherSettings.maxOrdersPerRequest)
-                .map {
-                  case (order, orderInfo) =>
-                    orderJson(order, orderInfo)
-                })
-          case Failure(ex) =>
-            complete(StatusCodes.BadRequest -> Json.obj("message" -> ex.getMessage))
+        withSignature(publicKey, ts, sig) { _ =>
+          complete(StatusCodes.OK -> ordersByAddressTimer.measure {
+            DBUtils
+              .ordersByAddress(db, publicKey, activeOnly.getOrElse(false), matcherSettings.maxOrdersPerRequest)
+              .map { case (order, orderInfo) => orderJson(order, orderInfo) }
+          })
         }
       }
     }
-  }
-
-  def checkGetSignature(pk: PublicKeyAccount, timestamp: String, signature: String): Try[PublicKeyAccount] = Try {
-    val sig = Base58.decode(signature).get
-    val ts  = timestamp.toLong
-    require(math.abs(ts - NTP.correctedTime()).millis < matcherSettings.maxTimestampDiff, "Incorrect timestamp")
-    require(crypto.verify(sig, pk.publicKey ++ Longs.toByteArray(ts), pk.publicKey), "Incorrect signature")
-    pk
   }
 
   @Path("/orders/cancel/{orderId}")
@@ -377,11 +377,8 @@ case class MatcherApiRoute(wallet: Wallet,
     ))
   def reservedBalance: Route = (path("balance" / "reserved" / PublicKeyPM) & get) { publicKey =>
     (headerValueByName("Timestamp") & headerValueByName("Signature")) { (ts, sig) =>
-      checkGetSignature(publicKey, ts, sig) match {
-        case Success(pk) =>
-          complete(StatusCodes.OK -> Json.toJson(DBUtils.reservedBalance(db, pk).map { case (k, v) => AssetPair.assetIdStr(k) -> v }))
-        case Failure(ex) =>
-          complete(StatusCodes.BadRequest -> Json.obj("message" -> ex.getMessage))
+      withSignature(publicKey, ts, sig) { pk =>
+        complete(StatusCodes.OK -> Json.toJson(DBUtils.reservedBalance(db, pk).map { case (k, v) => AssetPair.assetIdStr(k) -> v }))
       }
     }
   }
@@ -443,30 +440,6 @@ object MatcherApiRoute {
 
   val cancelRequestsTimestamps: scala.collection.mutable.Map[String, Duration] =
     scala.collection.mutable.Map().withDefaultValue(NTP.correctedTime().millis)
-
-  def checkReuse(address: String, timestamp: Duration) = synchronized {
-    val old = cancelRequestsTimestamps(address)
-    if (old >= timestamp) {
-      true
-    } else {
-      cancelRequestsTimestamps(address) = timestamp
-      false
-    }
-  }
-
-  def checkTimestamp(address: String, timestamp: Duration)(proc: => Future[(StatusCode, JsValue)]): Future[(StatusCode, JsValue)] = {
-    val correct = NTP.correctedTime().millis
-    val delta   = timestamp - correct
-    if (delta < -60.second) {
-      Future.successful(StatusCodes.BadRequest -> Json.obj("message" -> "Timestamp is from future"))
-    } else if (delta > expiration) {
-      Future.successful(StatusCodes.BadRequest -> Json.obj("message" -> "Timestamp is too old"))
-    } else if (checkReuse(address, timestamp)) {
-      Future.successful(StatusCodes.BadRequest -> Json.obj("message" -> "Timestamp has already been used"))
-    } else {
-      proc
-    }
-  }
 
   def orderJson(order: Order, orderInfo: OrderInfo): JsObject =
     Json.obj(

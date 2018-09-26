@@ -42,12 +42,11 @@ class OrderBookActor(assetPair: AssetPair,
     with ExchangeTransactionCreator {
   override def persistenceId: String = OrderBookActor.name(assetPair)
 
-  private val timer       = Kamon.timer("matcher.orderbook.match").refine("pair"    -> assetPair.toString)
-  private val cancelTimer = Kamon.timer("matcher.orderbook.persist").refine("event" -> "OrderCancelled")
+  private val timer       = Kamon.timer("matcher.orderbook.match")
+  private val cancelTimer = Kamon.timer("matcher.orderbook.persist").refine("event" -> "HandleCancelEvent")
   private val validationTimeouts = Kamon
     .counter("matcher.orderbook.error")
     .refine(
-      "pair"  -> assetPair.toString,
       "group" -> "validation",
       "type"  -> "timeout"
     )
@@ -198,11 +197,9 @@ class OrderBookActor(assetPair: AssetPair,
   private def onCancelOrder(orderIdToCancel: ByteStr): Unit =
     OrderBook.cancelOrder(orderBook, orderIdToCancel) match {
       case Some(oc) =>
-        val st = cancelTimer.start()
         persist(oc) { _ =>
-          handleCancelEvent(oc)
+          cancelTimer.measure(handleCancelEvent(oc))
           sender() ! OrderCanceled(orderIdToCancel)
-          st.stop()
         }
       case _ =>
         log.debug(s"Error cancelling $orderIdToCancel: order not found")
@@ -237,7 +234,6 @@ class OrderBookActor(assetPair: AssetPair,
   }
 
   private def applyEvent(e: Event): Unit = {
-    log.debug(s"Apply event $e")
     orderBook = OrderBook.updateState(orderBook, e)
     updateSnapshot(orderBook)
   }

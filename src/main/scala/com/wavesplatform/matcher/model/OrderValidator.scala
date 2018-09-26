@@ -45,12 +45,12 @@ trait OrderValidator {
   }
 
   def getTradableBalance(acc: AssetAcc): Long = timer.refine("action" -> "tradableBalance").measure {
-    math.max(0l, spendableBalance(acc) - orderHistory.openVolume(acc.account, acc.assetId))
+    math.max(0L, spendableBalance(acc) - orderHistory.openVolume(acc.account, acc.assetId))
   }
 
   def validateNewOrder(order: Order): Either[GenericError, Order] =
     timer
-      .refine("action" -> "place", "pair" -> order.assetPair.toString)
+      .refine("action" -> "place")
       .measure {
         val v =
           (order.matcherPublicKey == matcherPubKey) :| "Incorrect matcher public key" &&
