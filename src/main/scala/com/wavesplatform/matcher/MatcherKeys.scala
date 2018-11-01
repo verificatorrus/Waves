@@ -58,43 +58,44 @@ object MatcherKeys {
     }
   }
 
-  def activeOrdersSeqNr(address: Address): Key[Option[Int]] = Key.opt(bytes(3, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
+  def activeOrdersOldestSeqNr(address: Address): Key[Option[Int]] = Key.opt(bytes(3, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
+  def activeOrdersSeqNr(address: Address): Key[Option[Int]]       = Key.opt(bytes(4, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
 
-  val ActiveOrdersPrefix: Short            = 4
+  val ActiveOrdersPrefix: Short            = 5
   val ActiveOrdersPrefixBytes: Array[Byte] = Shorts.toByteArray(ActiveOrdersPrefix)
   def activeOrders(address: Address, seqNr: Int): Key[ActiveOrdersIndex.Node] =
     Key(bytes(ActiveOrdersPrefix, address.bytes.arr ++ Ints.toByteArray(seqNr)), ActiveOrdersIndex.Node.read, ActiveOrdersIndex.Node.write)
 
   def openVolume(address: Address, assetId: Option[AssetId]): Key[Option[Long]] =
-    Key.opt(bytes(5, address.bytes.arr ++ assetIdToBytes(assetId)), Longs.fromByteArray, Longs.toByteArray)
-  def openVolumeSeqNr(address: Address): Key[Int] = bytesSeqNr(6, address.bytes.arr)
+    Key.opt(bytes(6, address.bytes.arr ++ assetIdToBytes(assetId)), Longs.fromByteArray, Longs.toByteArray)
+  def openVolumeSeqNr(address: Address): Key[Int] = bytesSeqNr(7, address.bytes.arr)
   def openVolumeAsset(address: Address, seqNr: Int): Key[Option[AssetId]] =
-    Key(hBytes(7, seqNr, address.bytes.arr), Option(_).collect { case b if b.nonEmpty => ByteStr(b) }, assetIdToBytes)
+    Key(hBytes(8, seqNr, address.bytes.arr), Option(_).collect { case b if b.nonEmpty => ByteStr(b) }, assetIdToBytes)
 
-  def orderTxIdsSeqNr(orderId: ByteStr): Key[Int]           = bytesSeqNr(8, orderId.arr)
-  def orderTxId(orderId: ByteStr, seqNr: Int): Key[ByteStr] = Key(hBytes(9, seqNr, orderId.arr), ByteStr(_), _.arr)
+  def orderTxIdsSeqNr(orderId: ByteStr): Key[Int]           = bytesSeqNr(9, orderId.arr)
+  def orderTxId(orderId: ByteStr, seqNr: Int): Key[ByteStr] = Key(hBytes(10, seqNr, orderId.arr), ByteStr(_), _.arr)
 
   def exchangeTransaction(txId: ByteStr): Key[Option[ExchangeTransaction]] =
-    Key.opt(bytes(10, txId.arr), ExchangeTransaction.parseBytes(_).get, _.bytes())
+    Key.opt(bytes(11, txId.arr), ExchangeTransaction.parseBytes(_).get, _.bytes())
 
-  def activeOrdersSize(address: Address): Key[Option[Int]] = Key.opt(bytes(11, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
+  def activeOrdersSize(address: Address): Key[Option[Int]] = Key.opt(bytes(12, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
   def activeOrderSeqNr(address: Address, orderId: Order.Id): Key[Option[Int]] =
-    Key.opt(bytes(12, address.bytes.arr ++ orderId.arr), Ints.fromByteArray, Ints.toByteArray)
+    Key.opt(bytes(13, address.bytes.arr ++ orderId.arr), Ints.fromByteArray, Ints.toByteArray)
 
-  def finalizedCommonSeqNr(address: Address): Key[Option[Int]] = Key.opt(bytes(13, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
+  def finalizedCommonSeqNr(address: Address): Key[Option[Int]] = Key.opt(bytes(14, address.bytes.arr), Ints.fromByteArray, Ints.toByteArray)
 
-  val FinalizedCommonPrefix: Short            = 14
+  val FinalizedCommonPrefix: Short            = 15
   val FinalizedCommonPrefixBytes: Array[Byte] = Shorts.toByteArray(FinalizedCommonPrefix)
   def finalizedCommon(address: Address, seqNr: Int): Key[Option[Order.Id]] =
     Key.opt(bytes(FinalizedCommonPrefix, address.bytes.arr ++ Ints.toByteArray(seqNr)), ByteStr(_), _.arr)
 
   def finalizedPairSeqNr(address: Address, pair: AssetPair): Key[Option[Int]] =
-    Key.opt(bytes(15, address.bytes.arr ++ pair.bytes), Ints.fromByteArray, Ints.toByteArray)
+    Key.opt(bytes(16, address.bytes.arr ++ pair.bytes), Ints.fromByteArray, Ints.toByteArray)
 
-  val FinalizedPairPrefix: Short            = 16
+  val FinalizedPairPrefix: Short            = 17
   val FinalizedPairPrefixBytes: Array[Byte] = Shorts.toByteArray(FinalizedPairPrefix)
   def finalizedPair(address: Address, pair: AssetPair, seqNr: Int): Key[Option[Order.Id]] =
     Key.opt(bytes(FinalizedPairPrefix, address.bytes.arr ++ pair.bytes ++ Ints.toByteArray(seqNr)), ByteStr(_), _.arr)
 
-  def lastCommandTimestamp(address: Address): Key[Option[Long]] = Key.opt(bytes(17, address.bytes.arr), Longs.fromByteArray, Longs.toByteArray)
+  def lastCommandTimestamp(address: Address): Key[Option[Long]] = Key.opt(bytes(18, address.bytes.arr), Longs.fromByteArray, Longs.toByteArray)
 }
