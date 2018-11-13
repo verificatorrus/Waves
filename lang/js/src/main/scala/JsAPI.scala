@@ -23,18 +23,18 @@ object JsAPI {
   private def toJs(ast: EXPR): js.Object = {
     def r(expr: EXPR): js.Object = {
       expr match {
-        case CONST_LONG(t)        => jObj.applyDynamic("apply")("type" -> "LONG", "value"       -> t)
-        case GETTER(ref, field)   => jObj.applyDynamic("apply")("type" -> "GETTER", "ref"       -> r(ref), "field" -> field)
-        case CONST_BYTEVECTOR(bs) => jObj.applyDynamic("apply")("type" -> "BYTEVECTOR", "value" -> bs.toArray.toJSArray)
-        case CONST_STRING(s)      => jObj.applyDynamic("apply")("type" -> "STRING", "value"     -> s)
+        case CONST_LONG(t)        => jObj.Dictionary("type" -> "LONG", "value"       -> t)
+        case GETTER(ref, field)   => jObj.Dictionary("type" -> "GETTER", "ref"       -> r(ref), "field" -> field)
+        case CONST_BYTEVECTOR(bs) => jObj.Dictionary("type" -> "BYTEVECTOR", "value" -> bs.toArray.toJSArray)
+        case CONST_STRING(s)      => jObj.Dictionary("type" -> "STRING", "value"     -> s)
         case BLOCK(let, body) =>
-          jObj.applyDynamic("apply")("type" -> "BLOCK", "let" -> jObj("name" -> let.name, "value" -> r(let.value)), "body" -> r(body))
+          jObj.Dictionary("type" -> "BLOCK", "let" -> jObj("name" -> let.name, "value" -> r(let.value)), "body" -> r(body))
         case IF(cond, ifTrue, ifFalse) =>
-          jObj.applyDynamic("apply")("type" -> "IF", "condition" -> r(cond), "true" -> r(ifTrue), "false" -> r(ifFalse))
-        case REF(key)         => jObj.applyDynamic("apply")("type" -> "REF", "key"    -> key)
-        case CONST_BOOLEAN(b) => jObj.applyDynamic("apply")("type" -> "BOOL", "value" -> b)
+          jObj.Dictionary("type" -> "IF", "condition" -> r(cond), "true" -> r(ifTrue), "false" -> r(ifFalse))
+        case REF(key)         => jObj.Dictionary("type" -> "REF", "key"    -> key)
+        case CONST_BOOLEAN(b) => jObj.Dictionary("type" -> "BOOL", "value" -> b)
         case FUNCTION_CALL(function, args) =>
-          jObj.applyDynamic("apply")("type" -> "CALL", "name" -> (function match {
+          jObj.Dictionary("type" -> "CALL", "name" -> (function match {
             case Native(name) => name.toString()
             case User(name)   => name
           }), "args" -> args.map(r).toJSArray)
