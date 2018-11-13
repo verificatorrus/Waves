@@ -65,10 +65,8 @@ object JsAPI {
   def typeRepr(t: TYPE): js.Any = t match {
     case UNION(l) => l.map(typeRepr).toJSArray
     case CASETYPEREF(name, fields) =>
-      js.Dynamic.literal.applyDynamic("apply")(
-        "typeName" -> name,
-        "fields"   -> fields.map(f => js.Dynamic.literal.applyDynamic("apply")("name" -> f._1, "type" -> typeRepr(f._2))).toJSArray)
-    case LIST(t) => js.Dynamic.literal.applyDynamic("apply")("listOf" -> typeRepr(t))
+      js.Dictionary("typeName" -> name, "fields" -> fields.map(f => js.Dictionary("name" -> f._1, "type" -> typeRepr(f._2))).toJSArray)
+    case LIST(t) => js.Dictionary("listOf" -> typeRepr(t))
     case t       => t.toString
   }
 
