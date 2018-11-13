@@ -20,6 +20,8 @@ import scala.scalajs.js.annotation.JSExportTopLevel
 
 object JsAPI {
 
+// $COVERAGE-OFF$
+
   private def toJs(ast: EXPR): js.Object = {
     def r(expr: EXPR): js.Object = {
       expr match {
