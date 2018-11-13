@@ -6,6 +6,7 @@ import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.typedarray.{ArrayBuffer, Int8Array}
 
 object Global extends BaseGlobal {
+// $COVERAGE-OFF$
   def base58Encode(input: Array[Byte]): Either[String, String] = Right(impl.Global.base58Encode(toBuffer(input)))
   override def base58Decode(input: String, limit: Int): Either[String, Array[Byte]] =
     for {

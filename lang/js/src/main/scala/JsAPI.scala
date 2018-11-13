@@ -19,24 +19,22 @@ import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.annotation.JSExportTopLevel
 
 object JsAPI {
-
 // $COVERAGE-OFF$
-
   private def toJs(ast: EXPR): js.Object = {
     def r(expr: EXPR): js.Object = {
       expr match {
-        case CONST_LONG(t)        => jObj.Dictionary("type" -> "LONG", "value"       -> t)
-        case GETTER(ref, field)   => jObj.Dictionary("type" -> "GETTER", "ref"       -> r(ref), "field" -> field)
-        case CONST_BYTEVECTOR(bs) => jObj.Dictionary("type" -> "BYTEVECTOR", "value" -> bs.toArray.toJSArray)
-        case CONST_STRING(s)      => jObj.Dictionary("type" -> "STRING", "value"     -> s)
+        case CONST_LONG(t)        => jObj.applyDynamic("apply")("type" -> "LONG", "value"       -> t)
+        case GETTER(ref, field)   => jObj.applyDynamic("apply")("type" -> "GETTER", "ref"       -> r(ref), "field" -> field)
+        case CONST_BYTEVECTOR(bs) => jObj.applyDynamic("apply")("type" -> "BYTEVECTOR", "value" -> bs.toArray.toJSArray)
+        case CONST_STRING(s)      => jObj.applyDynamic("apply")("type" -> "STRING", "value"     -> s)
         case BLOCK(let, body) =>
-          jObj.Dictionary("type" -> "BLOCK", "let" -> jObj("name" -> let.name, "value" -> r(let.value)), "body" -> r(body))
+          jObj.applyDynamic("apply")("type" -> "BLOCK", "let" -> jObj("name" -> let.name, "value" -> r(let.value)), "body" -> r(body))
         case IF(cond, ifTrue, ifFalse) =>
-          jObj.Dictionary("type" -> "IF", "condition" -> r(cond), "true" -> r(ifTrue), "false" -> r(ifFalse))
-        case REF(key)         => jObj.Dictionary("type" -> "REF", "key"    -> key)
-        case CONST_BOOLEAN(b) => jObj.Dictionary("type" -> "BOOL", "value" -> b)
+          jObj.applyDynamic("apply")("type" -> "IF", "condition" -> r(cond), "true" -> r(ifTrue), "false" -> r(ifFalse))
+        case REF(key)         => jObj.applyDynamic("apply")("type" -> "REF", "key"    -> key)
+        case CONST_BOOLEAN(b) => jObj.applyDynamic("apply")("type" -> "BOOL", "value" -> b)
         case FUNCTION_CALL(function, args) =>
-          jObj.Dictionary("type" -> "CALL", "name" -> (function match {
+          jObj.applyDynamic("apply")("type" -> "CALL", "name" -> (function match {
             case Native(name) => name.toString()
             case User(name)   => name
           }), "args" -> args.map(r).toJSArray)
@@ -67,8 +65,8 @@ object JsAPI {
   def typeRepr(t: TYPE): js.Any = t match {
     case UNION(l) => l.map(typeRepr).toJSArray
     case CASETYPEREF(name, fields) =>
-      js.Dictionary("typeName" -> name, "fields" -> fields.map(f => js.Dictionary("name" -> f._1, "type" -> typeRepr(f._2))).toJSArray)
-    case LIST(t) => js.Dictionary("listOf" -> typeRepr(t))
+      js.Dynamic.literal("typeName" -> name, "fields" -> fields.map(f => js.Dynamic.literal("name" -> f._1, "type" -> typeRepr(f._2))).toJSArray)
+    case LIST(t) => js.Dynamic.literal("listOf" -> typeRepr(t))
     case t       => t.toString
   }
 
