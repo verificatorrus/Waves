@@ -12,7 +12,7 @@ env:
 script:
   - unset _JAVA_OPTIONS
   - unset SBT_OPTS
-  - export JAVA_TOOL_OPTIONS="-Xmx1548m"
+  - export JAVA_TOOL_OPTIONS="-Xmx1700m"
   - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled ";coverage;checkPR;coverageReport"
 after_success:
   - bash <(curl -s https://codecov.io/bash)
