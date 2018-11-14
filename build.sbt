@@ -7,7 +7,7 @@ import sbtassembly.MergeStrategy
 
 enablePlugins(JavaServerAppPackaging, JDebPackaging, SystemdPlugin, GitVersioning)
 scalafmtOnCompile in ThisBuild := true
-Global / cancelable := true
+Global / cancelable := false
 
 val versionSource = Def.task {
   // WARNING!!!
@@ -273,8 +273,8 @@ lazy val lang =
       ) ++ Dependencies.logging.map(_       % "test") // scrypto logs an error if a signature verification was failed
     )
 
-lazy val langJS  = lang.js
-lazy val langJVM = lang.jvm
+val langJS  = lang.js
+val langJVM = lang.jvm
 
 lazy val node = project
   .in(file("."))
