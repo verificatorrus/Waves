@@ -13,9 +13,9 @@ script:
   - unset _JAVA_OPTIONS
   - unset SBT_OPTS
   - export JAVA_TOOL_OPTIONS="-Xmx1900m"
-#  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal coverage
-  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal checkPR
-#  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal coverageReport
+  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal coverage
+  - sbt -J-Xms512M -J-Xmx2000M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal checkPR
+  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal coverageReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 # These directories are cached to S3 at the end of the build
