@@ -2,7 +2,7 @@ language: scala
 # Use container-based infrastructure
 sudo: false
 jdk:
-  - oraclejdk11
+  - oraclejdk9
 scala:
   - 2.12.7
 env:
