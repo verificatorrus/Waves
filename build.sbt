@@ -222,7 +222,7 @@ checkPRRaw in Global := {
     clean.all(ScopeFilter(inProjects(allProjects: _*), inConfigurations(Compile))).value
   } finally {
     compile.all(ScopeFilter(inProjects(generator, benchmark, langJS), inConfigurations(Test))).value
-    test.all(ScopeFilter(inProjects(langJVM, langJS, node), inConfigurations(Test))).value
+    test.all(ScopeFilter(inProjects(langJVM, node), inConfigurations(Test))).value
   }
 }
 
