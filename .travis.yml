@@ -2,7 +2,7 @@ language: scala
 # Use container-based infrastructure
 sudo: false
 jdk:
-  - oraclejdk9
+  - oraclejdk8
 scala:
   - 2.12.7
 env:
@@ -13,13 +13,13 @@ script:
   - unset _JAVA_OPTIONS
   - unset SBT_OPTS
   - export JAVA_TOOL_OPTIONS="-Xmx1900m"
-  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal coverage
-  - sbt -J-Xms1024M -J-Xmx2500M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal lang/compile compile test:compile lang/test:compile langJS/compile langJS/test:compile it/compile it/test:compile
-  - sbt -J-Xms1024M -J-Xmx2500M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal lang/test
-  - sbt -J-Xms1024M -J-Xmx2500M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal test
-  - sbt -J-Xms1024M -J-Xmx2500M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal langJS/test
-  - sbt -J-Xms1024M -J-Xmx2500M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal checkPR
-  - sbt -J-Xms512M -J-Xmx1536M -J-XX:+CMSClassUnloadingEnabled -J-Xss2M -J--add-modules=java.xml.bind -J--add-exports -Jjava.base/jdk.internal.ref=ALL-UNNAMED -J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler -J-XX:+EnableJVMCI -J-Djvmci.Compiler=graal coverageReport
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled coverage
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled lang/compile compile test:compile lang/test:compile langJS/compile langJS/test:compile it/compile it/test:compile
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled lang/test
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled test
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled langJS/test
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled checkPR
+  - sbt -J-Xms128m -J-Xmx1248m -J-XX:+UseConcMarkSweepGC -J-XX:+CMSClassUnloadingEnabled coverageReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 # These directories are cached to S3 at the end of the build
